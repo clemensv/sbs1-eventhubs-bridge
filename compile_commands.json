@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/Users/clemensv/Github/sbs1-eventhubs-bridge",
+  "command": "/usr/bin/gcc   -g3 -gdwarf-2 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk -I/Users/clemensv/Github/sbs1-eventhubs-bridge/include    -msse4.2 -Weffc++ -pedantic -Wall -Wextra -Wcast-align -w -o CMakeFiles/sbs1-eventhub-bridge.dir/src/bridge/main.c.o   -c /Users/clemensv/Github/sbs1-eventhubs-bridge/src/bridge/main.c",
+  "file": "/Users/clemensv/Github/sbs1-eventhubs-bridge/src/bridge/main.c"
+},
+{
+  "directory": "/Users/clemensv/Github/sbs1-eventhubs-bridge",
+  "command": "/usr/bin/gcc   -g3 -gdwarf-2 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk -I/Users/clemensv/Github/sbs1-eventhubs-bridge/include    -msse4.2 -Weffc++ -pedantic -Wall -Wextra -Wcast-align -w -o CMakeFiles/sbs1-eventhub-bridge.dir/src/bridge/sbs1_client.c.o   -c /Users/clemensv/Github/sbs1-eventhubs-bridge/src/bridge/sbs1_client.c",
+  "file": "/Users/clemensv/Github/sbs1-eventhubs-bridge/src/bridge/sbs1_client.c"
+}
+]

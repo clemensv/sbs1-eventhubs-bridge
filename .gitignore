@@ -1,0 +1,38 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Visual Studio uglies
+*.v11.suo
+*.vcxproj.filters
+*.vcxproj.user
+*.opensdf
+*.ncrunchsolution*
+*.sdf
+
+# Build artifacts
+Default/
+Debug/
+bin/
+build/
+nbproject/
+*.sln
+*.vcxproj
+Makefile
+haywire.Makefile
+*.mk
+gyp-mac-tool
+
+# Lazily-resolved dependencies
+lib/
