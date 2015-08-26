@@ -1,1 +1,0 @@
-/Users/clemensv/Github/sbs1-eventhubs-bridge/CMakeFiles/sbs1-eventhub-bridge.dir

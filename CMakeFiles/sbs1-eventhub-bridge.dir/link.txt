@@ -1,1 +1,0 @@
-/usr/bin/gcc  -g3 -gdwarf-2 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/sbs1-eventhub-bridge.dir/src/bridge/main.c.o CMakeFiles/sbs1-eventhub-bridge.dir/src/bridge/sbs1_client.c.o  -o sbs1-eventhub-bridge  
