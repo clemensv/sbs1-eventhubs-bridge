@@ -165,21 +165,22 @@ void printHelp(void)
 }
 
 
+static int count = 0;
 
-void processDataRow(char** data, int rows)
+void processDataRecord(AdsbRecord * record)
 {
-    for (int i = 0; i < rows; i++)
-    {
-        if (data[i] != NULL)
-        {
-            printf("%s,", data[i]);
-        }
-        else
-        {
-            printf(",");
-        }
-    }
-    printf("\n");
+    printf("%d : %d,%s,%s,%s,%d,%d,%d,%f,%f,%s\n", 
+           ++count,
+           record->transmissionType, 
+           record->generatedIsoTime, 
+           record->icaoHexIdentifier, 
+           record->callsign!=NULL?record->callsign:"",
+           record->altitude, 
+           record->groundSpeed, 
+           record->groundTrackAngle, 
+           record->latitude, 
+           record->longitude, 
+           record->squawk!=NULL?record->squawk:"" );
 }
 
 int main(int argc, char *argv[])
@@ -256,7 +257,7 @@ int main(int argc, char *argv[])
     while ( isRunning )
     {
         // if the socket drops, we're just going to go again.
-        sbs1Client("192.168.2.137", 30003, &processDataRow);
+        sbs1Client("192.168.2.137", 30003, &processDataRecord);
     }
     
     if (userLogStream != stdout)

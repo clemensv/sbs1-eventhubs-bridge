@@ -23,10 +23,9 @@ typedef struct tagParseState
     char** fields;
 } parseState;
 
-int processSbs1Connection(int socketHandle, processDataRowCallback callback);
+int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback);
 
-
-int sbs1Client(char * hostName, int port, processDataRowCallback * callback)
+int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback)
 {
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -61,7 +60,6 @@ int sbs1Client(char * hostName, int port, processDataRowCallback * callback)
     close(socketHandle);
     return 0;
 }
-
 
 parseState * newParseState()
 {
@@ -102,8 +100,7 @@ void freeParseState(parseState * ps)
     free(ps);
 }
 
-
-int processSbs1Connection(int socketHandle, processDataRowCallback callback)
+int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback)
 {
     int bufferSize = 1024;
     int bytesRead = 0;
@@ -122,9 +119,93 @@ int processSbs1Connection(int socketHandle, processDataRowCallback callback)
     return 0;
 }
 
+void handleCallback(processAdsbRecordCallback callback, char ** fields, int count)
+{
+    AdsbRecord record;
 
+    memset(&record, 0, sizeof(record));
+    if (count > 1 && fields[1] != NULL)
+    {
+        record.transmissionType = atoi(fields[1]);
+    }
+    if (count > 4 && fields[4] != NULL)
+    {
+        record.icaoHexIdentifier = fields[4];
+    }
+    if ( count > 9 && fields[8] != NULL && fields[9] != NULL)
+    {
+        record.generatedIsoTime = malloc(32);
+        int y, m, d, hr, mi, sc, ms; 
+       sscanf(fields[8], "%d/%d/%d", &y, &m, &d);
+       sscanf(fields[9], "%d:%d:%d.%d", &hr, &mi,&sc, &ms);   
+       sprintf(record.generatedIsoTime, "%04d-%02d-%02dT%02d:%02d:%02d.%dZ", y,m,d,hr,mi,sc,ms);
+    }
+    if (count > 10 && fields[10] != NULL)
+    {
+        record.callsign = fields[10];
+    }
+    if (count > 11 && fields[11] != NULL)
+    {
+        record.altitude = atoi(fields[11]);
+    }
+    else
+    {
+        record.altitude = -1;
+    }
+    if (count > 12 && fields[12] != NULL)
+    {
+        record.groundSpeed = atoi(fields[12]);
+    }
+    else 
+    {
+        record.groundSpeed = -1;
+    }
+    if (count > 13 && fields[13] != NULL)
+    {
+        record.groundTrackAngle = atoi(fields[13]);
+    }
+    else 
+    {
+        record.groundTrackAngle = -1;
+    }
+    if (count > 14 && fields[14] != NULL)
+    {
+        record.latitude = atoi(fields[14]);
+    }
+    else 
+    {
+        record.latitude = -1;
+    }
+    if (count > 15 && fields[15] != NULL)
+    {
+        record.longitude = atoi(fields[15]);
+    }
+    else 
+    {
+        record.longitude = -1;
+    }
+    if (count > 16 && fields[16] != NULL)
+    {
+        record.verticalRate = atoi(fields[16]);
+    }
+    else 
+    {
+        record.verticalRate = -1;
+    }
+    if (count > 17 && fields[17] != NULL)
+    {
+        record.squawk = fields[17];
+    }
+    
+    callback( &record );
+    
+    if ( record.generatedIsoTime )
+    {
+        free( record.generatedIsoTime );
+    }
+}
 
-int parseBuffer(char * buffer, int count, parseState * ps, processDataRowCallback callback)
+int parseBuffer(char * buffer, int count, parseState * ps, processAdsbRecordCallback callback)
 {
     char * mark = NULL;
     char * pos = buffer;
@@ -172,7 +253,7 @@ int parseBuffer(char * buffer, int count, parseState * ps, processDataRowCallbac
             {
                 if (ps->state != STATE_EOL)
                 {
-                    callback(ps->fields, ps->fieldNumber);
+                    handleCallback(callback, ps->fields, ps->fieldNumber);
                     resetParseState(ps);
                 }
                 ps->state = STATE_EOL;

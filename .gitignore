@@ -27,8 +27,15 @@ Debug/
 bin/
 build/
 nbproject/
+CMakeFiles/
+CMakeCache.txt
 *.sln
 *.vcxproj
+*.cmake
+compile_commands.json
+sbs1-eventhub-bridge
+.DS_Store
+.settings/
 Makefile
 haywire.Makefile
 *.mk

@@ -8,13 +8,31 @@
 #ifndef SBS1_CLIENT_H
 #define	SBS1_CLIENT_H
 
+#include <time.h>
+
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
-typedef void (*processDataRowCallback)(char** data, int rows);    
+typedef struct tagAdsbRecord
+{
+    int transmissionType;
+    char * icaoHexIdentifier;
+    char * generatedIsoTime;
+    char * callsign;
+    int altitude;
+    int groundSpeed;
+    int groundTrackAngle;
+    float latitude;
+    float longitude;
+    int verticalRate;
+    char * squawk;    
+} AdsbRecord;
     
-int sbs1Client(char * hostName, int port, processDataRowCallback * callback);
+typedef void (*processAdsbRecordCallback)(AdsbRecord * adsbRecord);    
+    
+int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback);
 
 
 #ifdef	__cplusplus
