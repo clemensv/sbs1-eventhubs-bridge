@@ -23,9 +23,9 @@ typedef struct tagParseState
     char** fields;
 } parseState;
 
-int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback);
+int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback, void * context);
 
-int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback)
+int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback, void * context)
 {
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -55,7 +55,7 @@ int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback)
         return -3;
     }
 
-    processSbs1Connection(socketHandle, callback);
+    processSbs1Connection(socketHandle, callback, context);
 
     close(socketHandle);
     return 0;
@@ -100,7 +100,7 @@ void freeParseState(parseState * ps)
     free(ps);
 }
 
-int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback)
+int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback, void * context)
 {
     int bufferSize = 1024;
     int bytesRead = 0;
@@ -111,7 +111,7 @@ int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback)
 
     while ((bytesRead = recv(socketHandle, buffer, bufferSize, 0)) > 0)
     {
-        parseBuffer(buffer, bytesRead, ps, callback);
+        parseBuffer(buffer, bytesRead, ps, callback, context);
     }
     freeParseState(ps);
 
@@ -119,7 +119,7 @@ int processSbs1Connection(int socketHandle, processAdsbRecordCallback callback)
     return 0;
 }
 
-void handleCallback(processAdsbRecordCallback callback, char ** fields, int count)
+void handleCallback(processAdsbRecordCallback callback, void * context, char ** fields, int count)
 {
     AdsbRecord record;
 
@@ -144,7 +144,7 @@ void handleCallback(processAdsbRecordCallback callback, char ** fields, int coun
     {
         record.callsign = fields[10];
     }
-    if (count > 11 && fields[11] != NULL)
+    if (count > 11 && fields[11] != NULL && fields[11][0] != 0x00)
     {
         record.altitude = atoi(fields[11]);
     }
@@ -152,7 +152,7 @@ void handleCallback(processAdsbRecordCallback callback, char ** fields, int coun
     {
         record.altitude = -1;
     }
-    if (count > 12 && fields[12] != NULL)
+    if (count > 12 && fields[12] != NULL && fields[12][0] != 0x00)
     {
         record.groundSpeed = atoi(fields[12]);
     }
@@ -160,7 +160,7 @@ void handleCallback(processAdsbRecordCallback callback, char ** fields, int coun
     {
         record.groundSpeed = -1;
     }
-    if (count > 13 && fields[13] != NULL)
+    if (count > 13 && fields[13] != NULL && fields[13][0] != 0x00)
     {
         record.groundTrackAngle = atoi(fields[13]);
     }
@@ -168,23 +168,23 @@ void handleCallback(processAdsbRecordCallback callback, char ** fields, int coun
     {
         record.groundTrackAngle = -1;
     }
-    if (count > 14 && fields[14] != NULL)
+    if (count > 14 && fields[14] != NULL && fields[14][0] != 0x00)
     {
-        record.latitude = atoi(fields[14]);
+        record.latitude = atof(fields[14]);
     }
     else 
     {
         record.latitude = -1;
     }
-    if (count > 15 && fields[15] != NULL)
+    if (count > 15 && fields[15] != NULL && fields[15][0] != 0x00)
     {
-        record.longitude = atoi(fields[15]);
+        record.longitude = atof(fields[15]);
     }
     else 
     {
         record.longitude = -1;
     }
-    if (count > 16 && fields[16] != NULL)
+    if (count > 16 && fields[16] != NULL && fields[16][0] != 0x00)
     {
         record.verticalRate = atoi(fields[16]);
     }
@@ -197,7 +197,7 @@ void handleCallback(processAdsbRecordCallback callback, char ** fields, int coun
         record.squawk = fields[17];
     }
     
-    callback( &record );
+    callback( &record, context );
     
     if ( record.generatedIsoTime )
     {
@@ -205,7 +205,7 @@ void handleCallback(processAdsbRecordCallback callback, char ** fields, int coun
     }
 }
 
-int parseBuffer(char * buffer, int count, parseState * ps, processAdsbRecordCallback callback)
+int parseBuffer(char * buffer, int count, parseState * ps, processAdsbRecordCallback callback, void * context)
 {
     char * mark = NULL;
     char * pos = buffer;
@@ -253,7 +253,7 @@ int parseBuffer(char * buffer, int count, parseState * ps, processAdsbRecordCall
             {
                 if (ps->state != STATE_EOL)
                 {
-                    handleCallback(callback, ps->fields, ps->fieldNumber);
+                    handleCallback(callback, context, ps->fields, ps->fieldNumber);
                     resetParseState(ps);
                 }
                 ps->state = STATE_EOL;

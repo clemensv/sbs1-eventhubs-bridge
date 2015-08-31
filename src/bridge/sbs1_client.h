@@ -30,9 +30,9 @@ typedef struct tagAdsbRecord
     char * squawk;    
 } AdsbRecord;
     
-typedef void (*processAdsbRecordCallback)(AdsbRecord * adsbRecord);    
+typedef void (*processAdsbRecordCallback)(AdsbRecord * adsbRecord, void * context);    
     
-int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback);
+int sbs1Client(char * hostName, int port, processAdsbRecordCallback * callback, void * context);
 
 
 #ifdef	__cplusplus

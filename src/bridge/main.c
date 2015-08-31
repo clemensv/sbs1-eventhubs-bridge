@@ -14,6 +14,7 @@
 #include <stdbool.h>
 
 #include "sbs1_client.h"
+#include "eventhub_client.h"
 
 static int isRunning = 0;
 static int delay = 1;
@@ -23,6 +24,13 @@ static char *lockFileName = NULL;
 static int lockFileHandle = -1;
 static char *serviceName = NULL;
 static FILE *userLogStream;
+
+typedef struct tagMessagePayloadContext
+{
+    char * buffer;
+    int bufferSize;
+          
+} MessagePayloadContext;
 
 int readConfig(bool refreshConfig)
 {
@@ -164,23 +172,37 @@ void printHelp(void)
     printf("\n");
 }
 
+static char * csvHeader = "ttyp,time,icao,call,alt,gspd,gtrk,lat,lon,sqwk\n";
 
-static int count = 0;
-
-void processDataRecord(AdsbRecord * record)
+void processDataRecord(AdsbRecord * record, MessagePayloadContext * context)
 {
-    printf("%d : %d,%s,%s,%s,%d,%d,%d,%f,%f,%s\n", 
-           ++count,
-           record->transmissionType, 
-           record->generatedIsoTime, 
-           record->icaoHexIdentifier, 
-           record->callsign!=NULL?record->callsign:"",
-           record->altitude, 
-           record->groundSpeed, 
-           record->groundTrackAngle, 
-           record->latitude, 
-           record->longitude, 
-           record->squawk!=NULL?record->squawk:"" );
+    char stringBuffer[256];
+    
+    snprintf(stringBuffer, sizeof(stringBuffer), 
+             "%d,%s,%s,%s,%d,%d,%d,%f,%f,%s\n", 
+            record->transmissionType, 
+            record->generatedIsoTime, 
+            record->icaoHexIdentifier, 
+            record->callsign!=NULL?record->callsign:"",
+            record->altitude, 
+            record->groundSpeed, 
+            record->groundTrackAngle, 
+            record->latitude, 
+            record->longitude, 
+            record->squawk!=NULL?record->squawk:"" );
+    
+    if ( strlen(context->buffer) + strlen(stringBuffer) > context->bufferSize-1 )
+    {
+       // flush out and realloc
+        printf(context->buffer);
+       sendPayload(context->buffer, "text/csv");
+       strcpy(context->buffer,csvHeader);
+       strcat(context->buffer, stringBuffer);
+    }
+    else
+    {
+        strcat(context->buffer + strlen(context->buffer), stringBuffer);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -253,11 +275,16 @@ int main(int argc, char *argv[])
 
     readConfig(false);
 
+    MessagePayloadContext ctx;
+    ctx.buffer = malloc(8192);
+    ctx.bufferSize = 8192;
+    strcpy(ctx.buffer, csvHeader);
+    
     isRunning = 1;
     while ( isRunning )
     {
         // if the socket drops, we're just going to go again.
-        sbs1Client("192.168.2.137", 30003, &processDataRecord);
+        sbs1Client("192.168.2.137", 30003, &processDataRecord, &ctx);
     }
     
     if (userLogStream != stdout)

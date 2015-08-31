@@ -56,10 +56,41 @@ function(create_source_group sourceGroupName relativeSourcePath)
 endfunction(create_source_group)
 
 # ----------------------------------------
-# Haywire
+# SBS-1 Eventhubs Bridge
 # ----------------------------------------
-project(haywire C)
-#set(CMAKE_BUILD_TYPE RelWithDebInfo)
+project(sbs1-eventhubs-bridge C)
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
+#include(version)
+#include(compiler_options)
+#include(dependencies)
+
+find_package(QPID_PROTON REQUIRED)
+if(QPID_PROTON_FOUND)
+    include_directories(${QPID_PROTON_INCLUDE_DIR})
+    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${QPID_PROTON_LIBRARY}")
+endif()
+
+find_package(QPID_PROTON REQUIRED)
+if(QPID_PROTON_FOUND)
+    include_directories(${QPID_PROTON_INCLUDE_DIR})
+    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${QPID_PROTON_LIBRARY}")
+endif()
+
+find_package(EVENTHUB_COMMON REQUIRED)
+if(EVENTHUB_COMMON_FOUND)
+    include_directories(${EVENTHUB_COMMON_INCLUDE_DIR})
+    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${EVENTHUB_COMMON_LIBRARY}")
+endif()
+
+find_package(EVENTHUB_CLIENT REQUIRED)
+if(EVENTHUB_CLIENT_FOUND)
+    include_directories(${EVENTHUB_CLIENT_INCLUDE_DIR})
+    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${EVENTHUB_CLIENT_LIBRARY}")
+endif()
+
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_BUILD_TYPE Debug)
 
 #add_definitions(-mavx)
@@ -82,11 +113,13 @@ file(GLOB_RECURSE BRIDGE_SOURCES
 list(SORT BRIDGE_SOURCES)
 create_source_group("Source Files" "${CMAKE_CURRENT_SOURCE_DIR}/src" ${BRIDGE_SOURCES})
 include_directories(${CMAKE_SOURCE_DIR}/include)
-
+include_directories(${CMAKE_INSTALL_PREFIX}/include)
+include_directories(${CMAKE_INSTALL_PREFIX}/include/eventhubs)
 
 add_executable(sbs1-eventhub-bridge ${BRIDGE_SOURCES})
 
-target_link_libraries (sbs1-eventhub-bridge)
+target_link_libraries (sbs1-eventhub-bridge 
+    ${${PROJECT_NAME}_EXTERNAL_LIBRARIES})
 
 GET_PROPERTY(bridge_location TARGET sbs1-eventhub-bridge PROPERTY LOCATION)
 
