@@ -66,16 +66,10 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 #include(compiler_options)
 #include(dependencies)
 
-find_package(QPID_PROTON REQUIRED)
-if(QPID_PROTON_FOUND)
-    include_directories(${QPID_PROTON_INCLUDE_DIR})
-    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${QPID_PROTON_LIBRARY}")
-endif()
-
-find_package(QPID_PROTON REQUIRED)
-if(QPID_PROTON_FOUND)
-    include_directories(${QPID_PROTON_INCLUDE_DIR})
-    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${QPID_PROTON_LIBRARY}")
+find_package(EVENTHUB_CLIENT REQUIRED)
+if(EVENTHUB_CLIENT_FOUND)
+    include_directories(${EVENTHUB_CLIENT_INCLUDE_DIR})
+    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${EVENTHUB_CLIENT_LIBRARY}")
 endif()
 
 find_package(EVENTHUB_COMMON REQUIRED)
@@ -84,19 +78,22 @@ if(EVENTHUB_COMMON_FOUND)
     list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${EVENTHUB_COMMON_LIBRARY}")
 endif()
 
-find_package(EVENTHUB_CLIENT REQUIRED)
-if(EVENTHUB_CLIENT_FOUND)
-    include_directories(${EVENTHUB_CLIENT_INCLUDE_DIR})
-    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${EVENTHUB_CLIENT_LIBRARY}")
+find_package(QPID_PROTON REQUIRED)
+if(QPID_PROTON_FOUND)
+    include_directories(${QPID_PROTON_INCLUDE_DIR})
+    list(APPEND ${PROJECT_NAME}_EXTERNAL_LIBRARIES "${QPID_PROTON_LIBRARY}")
 endif()
+
+find_package(Threads REQUIRED)
+
 
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_BUILD_TYPE Debug)
 
 #add_definitions(-mavx)
 add_definitions(-msse4.2)
-#add_definitions(-std=c++11)
-add_definitions(-Weffc++)
+add_definitions(-std=c99)
+#add_definitions(-Weffc++)
 add_definitions(-pedantic)
 #add_definitions(-O3)
 add_definitions(-Wall)
@@ -119,7 +116,8 @@ include_directories(${CMAKE_INSTALL_PREFIX}/include/eventhubs)
 add_executable(sbs1-eventhub-bridge ${BRIDGE_SOURCES})
 
 target_link_libraries (sbs1-eventhub-bridge 
-    ${${PROJECT_NAME}_EXTERNAL_LIBRARIES})
+     ${CMAKE_THREAD_LIBS_INIT}
+     ${${PROJECT_NAME}_EXTERNAL_LIBRARIES})
 
 GET_PROPERTY(bridge_location TARGET sbs1-eventhub-bridge PROPERTY LOCATION)
 

@@ -1,17 +1,23 @@
 // put MIT license here
 
+#if __STDC_VERSION__ >= 199901L
+#define _XOPEN_SOURCE 600
+#else
+#define _XOPEN_SOURCE 500
+#endif /* __STDC_VERSION__ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <syslog.h>
 #include <signal.h>
-#include <getopt.h>
-#include <string.h>
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <getopt.h>
+#include <string.h>
+#include <fcntl.h>
 
 #include "sbs1_client.h"
 #include "eventhub_client.h"
