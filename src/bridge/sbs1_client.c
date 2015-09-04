@@ -10,8 +10,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#if !defined(__APPLE__)
 #include <malloc.h>
-
+#endif
 #include "sbs1_client.h"
 
 

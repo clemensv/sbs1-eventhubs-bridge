@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-void sendPayload(char * payload, char * contentType);
+void sendPayload(char * payload, char * contentType, char * connectionString, char * entityPath);
 
 
 #ifdef	__cplusplus

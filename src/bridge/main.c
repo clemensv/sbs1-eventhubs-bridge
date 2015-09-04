@@ -22,11 +22,19 @@
 #include "sbs1_client.h"
 #include "eventhub_client.h"
 
+static int payloadBufferSize = 8192;
 static int isRunning = 0;
 static int delay = 1;
 static int counter = 0;
 static char *configFileName = NULL;
 static char *lockFileName = NULL;
+static char *sbs1ServerAddress = "localhost";
+static char *amqpAddress = NULL;
+static char *sasToken = NULL;
+static char *sasRule = NULL;
+static char *sasKey = NULL;
+static char *connectionString = NULL;
+
 static int lockFileHandle = -1;
 static char *serviceName = NULL;
 static FILE *userLogStream;
@@ -35,12 +43,12 @@ typedef struct tagMessagePayloadContext
 {
     char * buffer;
     int bufferSize;
-          
+
 } MessagePayloadContext;
 
 int readConfig(bool refreshConfig)
 {
-    
+
     FILE *configFile = NULL;
     int returnCode = -1;
 
@@ -166,44 +174,33 @@ static void forkDaemonProcess()
     }
 }
 
-void printHelp(void)
-{
-    printf("\n Usage: %s [OPTIONS]\n\n", serviceName);
-    printf("  Options:\n");
-    printf("   -h --help                 Print this help\n");
-    printf("   -f --file filename        Configuration file\n");
-    printf("   -l --log  filename        Log file\n");
-    printf("   -d --daemon               Run as background daemon\n");
-    printf("   -m --mutex  filename      Mutex (PID) file for daemon\n");
-    printf("\n");
-}
 
 static char * csvHeader = "ttyp,time,icao,call,alt,gspd,gtrk,lat,lon,sqwk\n";
 
 void processDataRecord(AdsbRecord * record, MessagePayloadContext * context)
 {
     char stringBuffer[256];
-    
-    snprintf(stringBuffer, sizeof(stringBuffer), 
-             "%d,%s,%s,%s,%d,%d,%d,%f,%f,%s\n", 
-            record->transmissionType, 
-            record->generatedIsoTime, 
-            record->icaoHexIdentifier, 
-            record->callsign!=NULL?record->callsign:"",
-            record->altitude, 
-            record->groundSpeed, 
-            record->groundTrackAngle, 
-            record->latitude, 
-            record->longitude, 
-            record->squawk!=NULL?record->squawk:"" );
-    
-    if ( strlen(context->buffer) + strlen(stringBuffer) > context->bufferSize-1 )
+
+    snprintf(stringBuffer, sizeof (stringBuffer),
+             "%d,%s,%s,%s,%d,%d,%d,%f,%f,%s\n",
+             record->transmissionType,
+             record->generatedIsoTime,
+             record->icaoHexIdentifier,
+             record->callsign != NULL ? record->callsign : "",
+             record->altitude,
+             record->groundSpeed,
+             record->groundTrackAngle,
+             record->latitude,
+             record->longitude,
+             record->squawk != NULL ? record->squawk : "");
+
+    if (strlen(context->buffer) + strlen(stringBuffer) > context->bufferSize - 1)
     {
-       // flush out and realloc
+        // flush out and realloc
         printf(context->buffer);
-       sendPayload(context->buffer, "text/csv");
-       strcpy(context->buffer,csvHeader);
-       strcat(context->buffer, stringBuffer);
+        sendPayload(context->buffer, "text/csv", connectionString, amqpAddress);
+        strcpy(context->buffer, csvHeader);
+        strcat(context->buffer, stringBuffer);
     }
     else
     {
@@ -211,27 +208,56 @@ void processDataRecord(AdsbRecord * record, MessagePayloadContext * context)
     }
 }
 
+void printHelp(void)
+{
+    printf("\n Usage: %s [OPTIONS]\n\n", serviceName);
+    printf("  Options:\n");
+    printf("   -h --help               Print this help\n");
+    printf("   -s --sbs <addr>:<port>  IP address or hostname and port of the SBS-1 logger\n" \
+           "                           [defaults to localhost:30003 if not specified]\n");
+    printf("   -x  --cxnstring <cxs>   Azure Service Bus connection string. When provided\n" \
+           "                           the -q parameter must be a relative entity path.\n");
+    printf("   -q --queue <amqp-url>   AMQP(S) URL of the target to receive the event\n" \
+           "                           data, e.g. amqps://myns.servicebus.windows.net/myeh\n");
+    printf("   -t --token <token>      Claim-based security token. A SAS token for Azure\n" \
+           "                           Service Bus");
+    printf("   -S --sasrule <name>     Name of the SB shared access rule (not with --token)\n");
+    printf("   -K --saskey <key>       Name of the SB shared access key (not with --token)\n");
+    printf("   -c --cfg filename       Configuration file\n");
+    printf("   -l --log  filename      Log file\n");
+    printf("   -d --daemon             Run as background daemon\n");
+    printf("   -m --mutex  filename    Mutex (PID) file for daemon\n");
+    printf("\n");
+}
+
 int main(int argc, char *argv[])
 {
     static struct option long_options[] = {
-        {"file", required_argument, 0, 'f'},
+        {"cfg", required_argument, 0, 'c'},
         {"log", required_argument, 0, 'l'},
         {"help", no_argument, 0, 'h'},
         {"daemon", no_argument, 0, 'd'},
+        {"sbs", required_argument, 0, 's'},
+        {"queue", required_argument, 0, 'q'},
+        {"token", required_argument, 0, 't'},
+        {"sasrule", required_argument, 0, 'S'},
+        {"saskey", required_argument, 0, 'K'},
+        {"cxnstring", required_argument, 0, 'x'},
         {"mutex", required_argument, 0, 'm'},
         {NULL, 0, 0, 0}
     };
     int value, optionIndex = 0, ret;
     char *logFileName = NULL;
     int runAsDaemon = 0;
+    int portNumber = 30003;
 
     serviceName = argv[0];
 
-    while ((value = getopt_long(argc, argv, "f:l:h:d:m", long_options, &optionIndex)) != -1)
+    while ((value = getopt_long(argc, argv, "c:l:h:d:s:q:t::S:K:m", long_options, &optionIndex)) != -1)
     {
         switch (value)
         {
-            case 'f':
+            case 'c':
                 configFileName = strdup(optarg);
                 break;
             case 'l':
@@ -246,12 +272,65 @@ int main(int argc, char *argv[])
             case 'h':
                 printHelp();
                 return EXIT_SUCCESS;
+            case 's':
+            {
+                char * split = NULL;
+                sbs1ServerAddress = strdup(optarg);
+                for (split = sbs1ServerAddress; *split != ':' && *split != '0x00'; split++);
+                if (*split == ':')
+                {
+                    // port number is whatever follows the colon
+                    portNumber = atoi(++split);
+                }
+            }
+                break;
+            case 'q':
+                amqpAddress = strdup(optarg);
+                break;
+            case 't':
+                sasToken = strdup(optarg);
+                break;
+            case 'S':
+                sasRule = strdup(optarg);
+                break;
+            case 'K':
+                sasKey = strdup(optarg);
+                break;
+            case 'x':
+                connectionString = strdup(optarg);
+                break;
             case '?':
                 printHelp();
                 return EXIT_FAILURE;
+
             default:
                 break;
+
         }
+    }
+
+    if ((amqpAddress == NULL && connectionString == NULL) ||
+        (connectionString == NULL && (sasToken == NULL ^ (sasKey == NULL || sasRule == NULL))))
+    {
+        printf("The fully qualified AMQP target address must be given with credentials or "\
+               "a connection string for Azure Service Bus along with a relative AMQP "\
+               "address indicating the target entity");
+        return EXIT_FAILURE;
+    }
+
+    if (connectionString == NULL &&
+        strncmp(amqpAddress, "amqp://", 7) != 0 &&
+        strncmp(amqpAddress, "amqps://", 8) != 0)
+    {
+        printf("Invalid AMQP address '%s'\n", amqpAddress);
+        return EXIT_FAILURE;
+    }
+
+
+    if (sasToken != NULL && (sasRule != NULL || sasKey != NULL))
+    {
+        printf("-S or -K cannot be specified with -t\n");
+        return EXIT_FAILURE;
     }
 
     if (runAsDaemon == 1)
@@ -282,17 +361,17 @@ int main(int argc, char *argv[])
     readConfig(false);
 
     MessagePayloadContext ctx;
-    ctx.buffer = malloc(8192);
-    ctx.bufferSize = 8192;
+    ctx.buffer = malloc(payloadBufferSize);
+    ctx.bufferSize = payloadBufferSize;
     strcpy(ctx.buffer, csvHeader);
-    
+
     isRunning = 1;
-    while ( isRunning )
+    while (isRunning)
     {
         // if the socket drops, we're just going to go again.
-        sbs1Client("192.168.2.137", 30003, &processDataRecord, &ctx);
+        sbs1Client(sbs1ServerAddress, portNumber, &processDataRecord, &ctx);
     }
-    
+
     if (userLogStream != stdout)
     {
         fclose(userLogStream);

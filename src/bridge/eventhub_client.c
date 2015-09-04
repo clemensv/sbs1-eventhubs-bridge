@@ -31,29 +31,17 @@ IN THE SOFTWARE.
 #include <threadapi.h>
 #include <crt_abstractions.h>
 
-//static const char* connectionString = "Endpoint=sb://[namespace].servicebus.windows.net/;SharedAccessKeyName=[key name];SharedAccessKey=[key value]";
-//static const char* eventHubPath = "[event hub name]";
-static const char* connectionString = "Endpoint=sb://clemensveu.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=bIeXN/RZeANw59xt39ZGyOScYxqRe73NIT4ZxrDooj4=";
-static const char* eventHubPath = "iotev1";
-
-
-
-static bool g_bSendProperties = false;
-static bool g_bSendPartitionKey = false;
-
-#define BUFFER_SIZE     128
-
 
 static EVENTHUBCLIENT_HANDLE eventHubClientHandle = NULL;
 
 
-int sendPayload(char * payload, char * contentType)
+int sendPayload(char * payload, char * contentType, char * connectionString, char * entityPath)
 {
     int result = 0;
 
     if ( eventHubClientHandle == NULL )
     {
-        eventHubClientHandle = EventHubClient_CreateFromConnectionString(connectionString, eventHubPath);
+        eventHubClientHandle = EventHubClient_CreateFromConnectionString(connectionString, entityPath);
         if (eventHubClientHandle == NULL)
         {
             result = 1;
