@@ -197,7 +197,6 @@ void processDataRecord(AdsbRecord * record, MessagePayloadContext * context)
     if (strlen(context->buffer) + strlen(stringBuffer) > context->bufferSize - 1)
     {
         // flush out and realloc
-        printf(context->buffer);
         sendPayload(context->buffer, "text/csv", connectionString, amqpAddress);
         strcpy(context->buffer, csvHeader);
         strcat(context->buffer, stringBuffer);
@@ -215,12 +214,12 @@ void printHelp(void)
     printf("   -h --help               Print this help\n");
     printf("   -s --sbs <addr>:<port>  IP address or hostname and port of the SBS-1 logger\n" \
            "                           [defaults to localhost:30003 if not specified]\n");
-    printf("   -x  --cxnstring <cxs>   Azure Service Bus connection string. When provided\n" \
-           "                           the -q parameter must be a relative entity path.\n");
+    printf("   -x  --cxnstring \"<cxs>\" Azure Service Bus connection string, in quotation marks.\n" \
+                                       "When provided, -q must be a relative entity path.\n");
     printf("   -q --queue <amqp-url>   AMQP(S) URL of the target to receive the event\n" \
            "                           data, e.g. amqps://myns.servicebus.windows.net/myeh\n");
     printf("   -t --token <token>      Claim-based security token. A SAS token for Azure\n" \
-           "                           Service Bus");
+           "                           Service Bus\n");
     printf("   -S --sasrule <name>     Name of the SB shared access rule (not with --token)\n");
     printf("   -K --saskey <key>       Name of the SB shared access key (not with --token)\n");
     printf("   -c --cfg filename       Configuration file\n");
@@ -253,7 +252,7 @@ int main(int argc, char *argv[])
 
     serviceName = argv[0];
 
-    while ((value = getopt_long(argc, argv, "c:l:h:d:s:q:t::S:K:m", long_options, &optionIndex)) != -1)
+    while ((value = getopt_long(argc, argv, "c:l:h:d:s:q:t::S:K:x:m", long_options, &optionIndex)) != -1)
     {
         switch (value)
         {
@@ -276,7 +275,7 @@ int main(int argc, char *argv[])
             {
                 char * split = NULL;
                 sbs1ServerAddress = strdup(optarg);
-                for (split = sbs1ServerAddress; *split != ':' && *split != '0x00'; split++);
+                for (split = sbs1ServerAddress; *split != ':' && *split != 0x00; split++);
                 if (*split == ':')
                 {
                     // port number is whatever follows the colon

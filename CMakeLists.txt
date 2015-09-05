@@ -90,7 +90,7 @@ find_package(Threads REQUIRED)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_BUILD_TYPE Debug)
 
-add_definitions(-std=c99)
+add_definitions(-std=gnu99)
 add_definitions(-pedantic)
 add_definitions(-Wall)
 add_definitions(-Wextra)
