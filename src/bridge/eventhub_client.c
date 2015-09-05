@@ -35,6 +35,8 @@ IN THE SOFTWARE.
 static EVENTHUBCLIENT_HANDLE eventHubClientHandle = NULL;
 
 
+
+// have to factor this to create the EH client separately. Later.
 int sendPayload(char * payload, char * contentType, char * connectionString, char * entityPath)
 {
     int result = 0;
